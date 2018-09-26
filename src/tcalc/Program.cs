@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using Superpower.Model;
 using tcalc.Evaluation;
 using tcalc.Parsing;
@@ -30,7 +31,7 @@ namespace tcalc
                         }
                         else
                         {
-                            var result = ExpressionEvaluator.Evaluate(expr);
+                            var result = ExpressionEvaluator.Evaluate(expr, TicketTypeAmounts);
                             Console.ForegroundColor = ConsoleColor.Cyan;
                             Console.WriteLine(result);
                         }
@@ -58,5 +59,10 @@ namespace tcalc
             Console.WriteLine(message);
             Console.ResetColor();
         }
+
+        private static readonly Dictionary<Guid, int> TicketTypeAmounts = new Dictionary<Guid, int>
+        {
+            { Guid.Parse("37f3350f-dcfc-4be3-93c0-3014cfffaa02"), 3 }
+        };
     }
 }

@@ -7,4 +7,17 @@
         Multiply,
         Divide
     }
+
+    public enum EqualityOperator
+    {
+        Equal,
+        LessThan,
+        GreaterThan
+    }
+
+    public enum LogicOperator
+    {
+        Or,
+        And
+    }
 }

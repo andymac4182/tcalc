@@ -35,29 +35,5 @@ namespace tcalc.Tests.Parsing
         {
             Assert.False(TestParser.TryParseAll(ExpressionParser.Number, input, out _, out _));
         }
-
-        [Fact]
-        public void WholeDurationsAreParsed()
-        {
-            Assert.True(TestParser.TryParseAll(ExpressionParser.Duration, "150h", out var expr, out var err), err);
-            var duration = Assert.IsType<DurationValue>(expr);
-            Assert.Equal(TimeSpan.FromHours(150), duration.Value);
-        }
-
-        [Fact]
-        public void FractionalDurationsAreParsed()
-        {
-            Assert.True(TestParser.TryParseAll(ExpressionParser.Duration, "1.5ms", out var expr, out var err), err);
-            var duration = Assert.IsType<DurationValue>(expr);
-            Assert.Equal(TimeSpan.FromTicks((long)(1.5 * TimeSpan.TicksPerMillisecond)), duration.Value);
-        }
-
-        [Fact]
-        public void ZeroDurationsAreParsed()
-        {
-            Assert.True(TestParser.TryParseAll(ExpressionParser.Duration, "0m", out var expr, out var err), err);
-            var duration = Assert.IsType<DurationValue>(expr);
-            Assert.Equal(TimeSpan.Zero, duration.Value);
-        }
     }
 }

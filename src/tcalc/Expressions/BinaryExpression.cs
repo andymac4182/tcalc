@@ -20,4 +20,23 @@ namespace tcalc.Expressions
             return new BinaryExpression(@operator, left, right);
         }
     }
+
+    public class LogicExpression : Expression
+    {
+        public Expression Left { get; }
+        public Expression Right { get; }
+        public LogicOperator Operator { get; }
+
+        public LogicExpression(LogicOperator @operator, Expression left, Expression right)
+        {
+            Left = left ?? throw new ArgumentNullException(nameof(left));
+            Right = right ?? throw new ArgumentNullException(nameof(right));
+            Operator = @operator;
+        }
+
+        public static LogicExpression Create(LogicOperator @operator, Expression left, Expression right)
+        {
+            return new LogicExpression(@operator, left, right);
+        }
+    }
 }

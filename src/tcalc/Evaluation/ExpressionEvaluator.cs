@@ -1,25 +1,97 @@
 ﻿using System;
+using System.Collections.Generic;
 using tcalc.Expressions;
+using tcalc.Parsing;
 
 namespace tcalc.Evaluation
 {
     public static class ExpressionEvaluator
     {
-        public static Result Evaluate(Expression expression)
+        public static Result Evaluate(Expression expression, Dictionary<Guid, int> ticketTypeAmounts)
         {
             if (expression == null) throw new ArgumentNullException(nameof(expression));
 
             switch (expression)
             {
-                case DurationValue duration:
-                    return new DurationResult(duration.Value);
                 case NumericValue numeric:
                     return new NumericResult(numeric.Value);
+                case TicketTypeExpression tt:
+                    return new NumericResult(ticketTypeAmounts[Guid.Parse(tt.TicketTypeId)]);
                 case BinaryExpression binary:
-                    return DispatchOperator(Evaluate(binary.Left), Evaluate(binary.Right), binary.Operator);
+                    return DispatchOperator(Evaluate(binary.Left, ticketTypeAmounts), Evaluate(binary.Right, ticketTypeAmounts), binary.Operator);
+                case EqualityExpression equality:
+                    return DispatchEquality(Evaluate(equality.LeftExpression, ticketTypeAmounts), Evaluate(equality.RightExpression, ticketTypeAmounts), equality.EqualityOperator);
+                case LogicExpression logic:
+                    return DispatchLogic(Evaluate(logic.Left, ticketTypeAmounts), Evaluate(logic.Right, ticketTypeAmounts), logic.Operator);
                 default:
                     throw new ArgumentException($"Unsupported expression {expression}.");
             }
+        }
+
+        private static Result DispatchLogic(Result left, Result right, LogicOperator logicOperator)
+        {
+            if (left == null) throw new ArgumentNullException(nameof(left));
+            if (right == null) throw new ArgumentNullException(nameof(right));
+
+            switch (logicOperator)
+            {
+                case LogicOperator.Or:
+                    return DispatchLogicOr(left, right);
+                case LogicOperator.And:
+                    return DispatchLogicAnd(left, right);
+                default:
+                    throw new ArgumentException($"Unsupported operator {logicOperator}.");
+            }
+        }
+
+        private static Result DispatchLogicAnd(Result left, Result right)
+        {
+            if (left is BooleanResult ln && right is BooleanResult rn)
+                return new BooleanResult(ln.Result && rn.Result);
+
+            throw new EvaluationException($"Values {left} and {right} cannot be `and`ed.");
+        }
+
+        private static Result DispatchLogicOr(Result left, Result right)
+        {
+            if (left is BooleanResult ln && right is BooleanResult rn)
+                return new BooleanResult(ln.Result || rn.Result);
+
+            throw new EvaluationException($"Values {left} and {right} cannot be `or`ed.");
+        }
+
+        static Result DispatchEquality(Result left, Result right, EqualityOperator equalityOperator)
+        {
+            if (left == null) throw new ArgumentNullException(nameof(left));
+            if (right == null) throw new ArgumentNullException(nameof(right));
+
+            switch (equalityOperator)
+            {
+                case EqualityOperator.Equal:
+                    return DispatchEqualityEqual(left, right);
+                case EqualityOperator.LessThan:
+                    return DispatchEqualityLessThan(left, right);
+                case EqualityOperator.GreaterThan:
+                    return DispatchEqualityLessThan(right, left);
+                default:
+                    throw new ArgumentException($"Unsupported operator {equalityOperator}.");
+            }
+        }
+
+        private static Result DispatchEqualityLessThan(Result left, Result right)
+        {
+            if (left is NumericResult ln && right is NumericResult rn)
+                return new BooleanResult(ln.Value < rn.Value);
+
+            throw new EvaluationException($"Values {left} and {right} cannot be added.");
+        }
+
+        private static Result DispatchEqualityEqual(Result left, Result right)
+        {
+            if (left is NumericResult ln && right is NumericResult rn)
+                return new BooleanResult(ln.Value == rn.Value);
+
+            throw new EvaluationException($"Values {left} and {right} cannot be added.");
         }
 
         static Result DispatchOperator(Result left, Result right, Operator @operator)
@@ -44,9 +116,6 @@ namespace tcalc.Evaluation
 
         static Result DispatchAdd(Result left, Result right)
         {
-            if (left is DurationResult dl && right is DurationResult dr)
-                return new DurationResult(dl.Value + dr.Value);
-
             if (left is NumericResult ln && right is NumericResult rn)
                 return new NumericResult(ln.Value + rn.Value);
 
@@ -55,9 +124,6 @@ namespace tcalc.Evaluation
 
         static Result DispatchSubtract(Result left, Result right)
         {
-            if (left is DurationResult dl && right is DurationResult dr)
-                return new DurationResult(dl.Value - dr.Value);
-
             if (left is NumericResult ln && right is NumericResult rn)
                 return new NumericResult(ln.Value - rn.Value);
 
@@ -69,12 +135,6 @@ namespace tcalc.Evaluation
             if (left is NumericResult ln && right is NumericResult rn)
                 return new NumericResult(ln.Value * rn.Value);
 
-            if (left is DurationResult dl && right is NumericResult nr)
-                return new DurationResult(dl.Value * nr.Value);
-
-            if (left is NumericResult nl && right is DurationResult dr)
-                return new DurationResult(nl.Value * dr.Value);
-
             throw new EvaluationException($"Values {left} and {right} cannot be multiplied.");
         }
 
@@ -82,12 +142,6 @@ namespace tcalc.Evaluation
         {
             if (left is NumericResult ln && right is NumericResult rn)
                 return new NumericResult(ln.Value / rn.Value);
-
-            if (left is DurationResult dl && right is NumericResult nr)
-                return new DurationResult(dl.Value / nr.Value);
-
-            if (left is DurationResult dl2 && right is DurationResult dr)
-                return new NumericResult(dl2.Value / dr.Value);
 
             throw new EvaluationException($"Value {left} cannot be divided by {right}.");
         }
